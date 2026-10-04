@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz en direct · CAA · Votes et quiz en direct</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="questions.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* Charte Studio Frames. Combinaison « Noir et beige » : fond Noir #000000, encarts Beige #E8E1CD à texte Noir,
+   barres Sepia #382C17, bonne réponse en Film Blue #79A7BC, repères en Jaune Starlet #D0B63D (filet, numéros), Rust #D9482B pour les erreurs. */
+:root{
+  --noir:#000000; --sepia:#382C17; --beige:#E8E1CD; --bleu:#79A7BC; --repere:#D0B63D; --rust:#D9482B;
+  --carte:#E8E1CD; --sur-carte:#000000;
+  --piste:color-mix(in srgb,#382C17 18%,#E8E1CD);
+  --doux:color-mix(in srgb,#E8E1CD 72%,#000000);
+  --doux-carte:color-mix(in srgb,#000000 70%,#E8E1CD);
+  --f-titre:'ITC Avant Garde Gothic','Avant Garde','Century Gothic','Inter',system-ui,sans-serif;
+  --f-texte:'Inter','Helvetica Neue',Helvetica,Arial,system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{min-height:100%}
+body{margin:0;min-height:100vh;background:var(--noir);color:var(--beige);font-family:var(--f-texte);font-size:17px;line-height:1.45;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--repere);outline-offset:2px}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--f-titre);font-weight:800;text-transform:uppercase;line-height:1.1;margin:0}
+.titre{font-size:clamp(2.2rem,6vw,4rem);color:var(--beige)}
+.titre-petit{font-size:1.2rem;color:var(--beige)}
+.chapo{max-width:52ch;font-size:1.15rem;color:var(--doux)}
+.petit{font-size:.88rem;color:var(--doux)}
+.btn{font-family:var(--f-titre);font-weight:800;text-transform:uppercase;letter-spacing:.03em;font-size:.9rem;border:2px solid var(--beige);background:var(--beige);color:var(--noir);border-radius:999px;padding:.7em 1.3em;cursor:pointer}
+.btn-leger{background:transparent;color:var(--beige);border-color:color-mix(in srgb,var(--beige) 45%,transparent)}
+.btn-danger{background:var(--rust);color:var(--noir);border-color:var(--rust)}
+.btn[disabled]{opacity:.45;cursor:default}
+.bandeau{background:var(--rust);color:var(--noir);padding:10px 16px;font-weight:700;text-align:center}
+.bandeau-fatal{max-width:560px;margin:12vh auto;padding:0 20px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--beige);color:var(--noir);padding:.7em 1.2em;border-radius:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}
+.toast.visible{opacity:1;transform:translateX(-50%)}
+
+/* Page d'entrée (sans paramètre) */
+.landing{max-width:720px;margin:10vh auto;padding:0 20px}
+.landing-actions{display:grid;gap:22px;margin-top:28px}
+.join{display:grid;gap:8px}
+.join-row{display:flex;gap:10px}
+.join input{flex:1;font-size:1.4rem;letter-spacing:.2em;text-transform:uppercase;padding:.5em .7em;border-radius:12px;border:2px solid var(--beige);background:var(--noir)}
+
+/* Écran du présentateur : encarts Beige, texte Noir */
+.entete{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center;padding:14px 24px;background:var(--carte);color:var(--sur-carte);border-bottom:3px solid var(--repere)}
+.entete .titre-petit{color:var(--sur-carte)}
+.statut{margin:2px 0 0;font-size:.85rem;color:var(--doux)}
+.entete .statut,.entete .petit,.entete .compteur{color:var(--doux-carte)}
+.onglets{display:flex;gap:8px}
+.onglet{font-family:var(--f-titre);font-weight:800;text-transform:uppercase;font-size:.85rem;border:2px solid var(--noir);background:transparent;color:var(--noir);border-radius:999px;padding:.55em 1.1em;cursor:pointer}
+.onglet[aria-current="page"]{background:var(--noir);color:var(--beige)}
+.salle{display:flex;gap:12px;align-items:center}
+.qr-mini{border:0;padding:4px;background:var(--beige);border-radius:8px;cursor:pointer;line-height:0}
+.code-salle{display:block;font-family:var(--f-titre);font-weight:800;font-size:1.6rem;letter-spacing:.18em;color:var(--noir);line-height:1}
+.compteur{font-size:.82rem}
+.scene{padding:24px}
+.panneau-accueil{display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:center;max-width:980px;margin:6vh auto}
+.accueil-qr{padding:14px;background:var(--beige);border-radius:16px;line-height:0}
+.accueil-titre{font-size:2rem;color:var(--beige);margin-bottom:12px}
+.url{font-weight:700;word-break:break-all;color:var(--repere)}
+.code-inline{font-family:var(--f-titre);letter-spacing:.18em;color:var(--repere)}
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,#000 88%,transparent);display:grid;place-items:center;z-index:10}
+.overlay-carte{background:var(--carte);color:var(--sur-carte);border-radius:20px;padding:28px;text-align:center}
+.overlay-carte .petit{color:var(--doux-carte)}
+.overlay-carte>div{background:var(--beige);padding:14px;border-radius:12px;display:inline-block;line-height:0;border:2px solid var(--noir)}
+.overlay-code{font-size:1.5rem;margin:16px 0 4px}
+
+.panneau-vote{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:28px;align-items:start}
+.colonne-vote{display:grid;gap:22px}
+.programme,.editeur,.resultats{background:var(--carte);color:var(--sur-carte);border-radius:16px;padding:18px}
+.programme h2,.editeur h2{font-size:1.1rem;color:var(--sur-carte);margin-bottom:6px}
+.programme .petit,.editeur .petit,.resultats .petit{color:var(--doux-carte)}
+.programme ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.prog-btn{width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;border:2px solid var(--noir);background:var(--noir);color:var(--beige);border-radius:10px;padding:9px 12px;cursor:pointer}
+.prog-btn.encours{border-color:var(--repere);box-shadow:0 0 0 2px var(--repere)}
+.prog-num{font-family:var(--f-titre);font-weight:800;font-size:.78rem;color:var(--repere);text-transform:uppercase}
+.prog-type{font-size:.7rem;border:1px solid var(--beige);color:var(--beige);border-radius:999px;padding:0 .5em;margin-left:6px}
+.prog-fait{font-size:.78rem;color:var(--doux)}
+.editeur label{display:block;font-weight:700;margin:10px 0 4px}
+.editeur textarea{width:100%;border-radius:10px;border:2px solid var(--noir);background:var(--noir);color:var(--beige);padding:.6em .8em}
+.presets{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+.programme .btn,.editeur .btn,.resultats .btn{background:var(--noir);border-color:var(--noir);color:var(--beige)}
+.programme .btn-leger,.editeur .btn-leger,.resultats .btn-leger{background:transparent;border-color:var(--noir);color:var(--noir)}
+.programme .btn-danger,.editeur .btn-danger,.resultats .btn-danger{background:var(--rust);border-color:var(--rust);color:var(--noir)}
+.resultats{border-radius:20px;padding:28px;min-height:60vh}
+.resultats .question{font-size:clamp(1.6rem,3vw,2.6rem);color:var(--sur-carte);text-transform:none;margin-bottom:10px}
+.resultats .question.longue{font-size:clamp(1.3rem,2.2vw,1.9rem)}
+.total{color:var(--doux-carte);margin:0 0 20px}
+.vide{color:var(--doux-carte);font-size:1.2rem}
+.barres{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:14px}
+.barre{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) 2.5rem;gap:14px;align-items:center;font-size:1.25rem;border-radius:12px;padding:6px 10px}
+.barre.juste{background:var(--bleu);outline:3px solid var(--bleu)}
+.barre-piste{height:30px;border-radius:15px;background:var(--piste);overflow:hidden}
+.barre-remplie{display:block;height:100%;background:var(--sepia);border-radius:15px;transition:width .35s}
+.barre.juste .barre-piste{background:var(--beige)}
+.barre.juste .barre-remplie{background:var(--noir)}
+.barre-n{font-family:var(--f-titre);font-weight:800;text-align:right}
+.reponse{background:var(--bleu);color:var(--noir);border-radius:14px;padding:14px 18px;margin:0 0 20px;font-size:1.15rem}
+.reponse strong{font-family:var(--f-titre);text-transform:uppercase}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Écran des participants */
+.eleve{max-width:560px;margin:0 auto;padding:22px 16px 40px}
+.eleve-entete{margin-bottom:18px}
+.attente{font-size:1.2rem;color:var(--doux);text-align:center;margin-top:20vh}
+.question-e{font-size:1.5rem;line-height:1.15;color:var(--beige);text-transform:none;margin:0 0 12px}
+.e-options{display:grid;gap:12px;margin:16px 0}
+.e-option{width:100%;text-align:left;border:3px solid var(--carte);background:var(--carte);color:var(--sur-carte);border-radius:16px;padding:16px;font-size:1.05rem;cursor:pointer}
+.e-option.choisi{border-color:var(--repere);box-shadow:0 0 0 3px var(--noir),0 0 0 6px var(--repere)}
+.e-option.juste{background:var(--bleu);border-color:var(--bleu)}
+.e-option.faux{background:var(--rust);border-color:var(--rust)}
+.e-option[disabled]{cursor:default}
+.e-option-res{display:flex;align-items:center;gap:10px;margin-top:8px}
+.mini-piste{flex:1;height:10px;border-radius:5px;background:var(--piste);overflow:hidden}
+.mini-remplie{display:block;height:100%;background:var(--sepia)}
+.e-option.juste .mini-piste{background:var(--beige)}
+.e-option.juste .mini-remplie{background:var(--noir)}
+.retour{border-radius:16px;padding:16px;background:var(--bleu);color:var(--noir)}
+.retour strong{font-family:var(--f-titre);text-transform:uppercase}
+.retour.faux{background:var(--rust)}
+textarea{width:100%;border-radius:12px;border:2px solid var(--beige);background:var(--noir);color:var(--beige);padding:.6em .8em;margin:8px 0}
+.mur{list-style:none;margin:0 0 22px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.mur li{background:var(--sepia);color:var(--beige);border-radius:12px;padding:12px 14px;font-size:1.1rem}
+.mur-e{grid-template-columns:1fr}
+@media (max-width:900px){
+  .entete{grid-template-columns:1fr}
+  .panneau-vote{grid-template-columns:1fr}
+  .panneau-accueil{grid-template-columns:1fr}
+  .barre{grid-template-columns:1fr 2.5rem;grid-template-areas:"a n" "b b"}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+'use strict';
+/* ======================================================================
+   SALLE DE VOTE ET QUIZ EN DIRECT (gabarit)
+   Fonctionnement : l'ordinateur du présentateur ouvre la salle (?prof), les
+   téléphones la rejoignent en scannant le QR code (?salle=CODE). Connexion
+   directe entre appareils (PeerJS), aucun compte, aucun serveur à installer.
+   Le fichier doit être hébergé en ligne (https) pour que les téléphones l'ouvrent.
+   ====================================================================== */
+const PREFIX='sfvote-';
+const TITRE='Quiz en direct · CAA';
+
+/* ===== Relais réseau (facultatif) : utile si le wifi de la salle filtre les connexions.
+   Compte gratuit metered.ca (Open Relay) : renseigner METERED_APP et METERED_KEY. */
+const METERED_APP='';
+const METERED_KEY='';
+const STUN_BASE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
+let ICE_CACHE=null;
+async function getIce(){
+  if(ICE_CACHE)return ICE_CACHE;
+  let ice=STUN_BASE.slice();
+  if(METERED_APP&&METERED_KEY){
+    try{
+      const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),6000);
+      const r=await fetch('https://'+METERED_APP+'.metered.live/api/v1/turn/credentials?apiKey='+encodeURIComponent(METERED_KEY),{signal:ctrl.signal});
+      clearTimeout(t);
+      if(r.ok){const j=await r.json();if(Array.isArray(j)&&j.length)ice=j.concat(STUN_BASE);}
+    }catch(e){}
+  }
+  ICE_CACHE=ice;return ice;
+}
+const RELAIS_ACTIF=!!(METERED_APP&&METERED_KEY);
+
+/* ===== Liste des votes et questions de la séance =====
+   type : 'vote' (pas de bonne réponse obligatoire) ou 'quiz'
+   juste : indice (0, 1, 2…) de la bonne réponse, ou null
+   explication : phrase affichée avec la bonne réponse (facultatif) */
+const SEANCES=window.SEANCES||{};
+const SEANCE_ID=new URLSearchParams(location.search).get('seance')||'';
+const VOTES=(SEANCES[SEANCE_ID]&&SEANCES[SEANCE_ID].votes)||[];
+const SKEY=SEANCE_ID?('-'+SEANCE_ID):'';
+
+const ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const makeCode=()=>Array.from({length:5},()=>ALPHA[Math.floor(Math.random()*ALPHA.length)]).join('');
+const params=new URLSearchParams(location.search);
+const app=document.getElementById('app');
+
+function h(tag,props,...kids){
+  const e=document.createElement(tag);
+  if(props) for(const [k,v] of Object.entries(props)){
+    if(v==null||v===false) continue;
+    if(k==='class') e.className=v;
+    else if(k==='text') e.textContent=v;
+    else if(k.startsWith('on')&&typeof v==='function') e.addEventListener(k.slice(2),v);
+    else e.setAttribute(k,v===true?'':v);
+  }
+  for(const kid of kids.flat()){
+    if(kid==null||kid===false) continue;
+    e.append(kid instanceof Node?kid:document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const store={
+  get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=h('div',{id:'toast',class:'toast',role:'status','aria-live':'polite'});document.body.append(t);}
+  t.textContent=msg;t.classList.add('visible');
+  clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('visible'),2800);
+}
+function baseUrl(){return location.origin+location.pathname;}
+function pluriel(n,mot){return n+' '+mot+(n>1?'s':'');}
+
+/* ---------- Démarrage ---------- */
+if(typeof Peer==='undefined'){
+  app.replaceChildren(h('div',{class:'bandeau-fatal'},
+    h('h1',{class:'titre titre-petit'},'La connexion n’a pas pu démarrer'),
+    h('p',{},'La bibliothèque de connexion n’a pas été chargée. Vérifiez que l’appareil est connecté à internet, puis rechargez la page.')));
+  return;
+}
+if(params.has('salle')) startStudent(params.get('salle').trim().toUpperCase().slice(0,5));
+else if(params.has('prof')&&SEANCE_ID) startHost();
+else landing();
+
+function landing(){
+  app.replaceChildren(h('main',{class:'landing'},
+    h('h1',{class:'titre'},TITRE),
+    h('p',{class:'chapo'},'Votes et quiz en direct. Le présentateur ouvre la salle, les participants la rejoignent en scannant le QR code, sans compte.'),
+    h('div',{class:'landing-actions'},
+      h('div',{class:'join'},h('label',{},'Ouvrir la salle pour une séance'),
+        ...Object.entries(SEANCES).map(([id,s])=>h('button',{class:'btn',onclick:()=>{location.search='?prof&seance='+id;}},s.titre))),
+      h('form',{class:'join',onsubmit:e=>{e.preventDefault();const c=e.target.elements.code.value.trim().toUpperCase();if(c)location.search='?salle='+encodeURIComponent(c);}},
+        h('label',{for:'code'},'Rejoindre avec un code'),
+        h('div',{class:'join-row'},
+          h('input',{id:'code',name:'code',maxlength:'5',autocomplete:'off',placeholder:'K7PQ2'}),
+          h('button',{class:'btn'},'Rejoindre'))))));
+}
+
+/* ---------- Présentateur ---------- */
+function startHost(){
+  const H={
+    state:store.get('sfvote_etat'+SKEY)||{mode:'accueil',vote:null,lances:[]},
+    code:store.get('sfvote_code')||makeCode(),
+    conns:new Map(),montrer:false,peer:null,bt:null
+  };
+  store.set('sfvote_code',H.code);
+  buildHostUI(H);
+  openHostPeer(H,0);
+}
+
+async function openHostPeer(H,attempt){
+  setStatus('Connexion au serveur…');
+  const ice=await getIce();
+  const peer=new Peer(PREFIX+H.code,{debug:1,config:{iceServers:ice}});
+  H.peer=peer;
+  peer.on('open',()=>{setStatus('Salle ouverte'+(RELAIS_ACTIF?' · relais réseau actif':' · sans relais réseau'));drawQR(H);});
+  peer.on('connection',conn=>{
+    /* On enregistre la connexion tout de suite : un message « hello » peut arriver avant l'événement « open ». */
+    const entry={conn,me:null};H.conns.set(conn.peer,entry);
+    conn.on('open',()=>{sendState(H,entry);});
+    conn.on('data',d=>onStudentMsg(H,conn.peer,d));
+    const drop=()=>{H.conns.delete(conn.peer);renderCount(H);};
+    conn.on('close',drop);conn.on('error',drop);
+  });
+  peer.on('disconnected',()=>{setStatus('Reconnexion au serveur…');try{peer.reconnect();}catch(e){}});
+  peer.on('error',err=>{
+    if(err.type==='unavailable-id'){
+      peer.destroy();
+      if(attempt<2){setStatus('Récupération de la salle…');setTimeout(()=>openHostPeer(H,attempt+1),5000);}
+      else{H.code=makeCode();store.set('sfvote_code',H.code);renderCode(H);openHostPeer(H,0);}
+    }else if(['network','server-error','socket-error','socket-closed'].includes(err.type)){
+      setStatus('Serveur de connexion injoignable. Vérifiez la connexion internet.');
+    }else{setStatus('Erreur de connexion ('+err.type+')');}
+  });
+}
+function setStatus(t){const s=document.getElementById('statut');if(s)s.textContent=t;}
+function joinUrl(H){return baseUrl()+'?salle='+H.code;}
+
+function buildHostUI(H){
+  const tabs=h('nav',{class:'onglets','aria-label':'Activité'},
+    ...[['accueil','Accueil'],['vote','Votes et quiz']].map(([m,l])=>
+      h('button',{class:'onglet','data-mode':m,onclick:()=>setMode(H,m)},l)));
+  const header=h('header',{class:'entete'},
+    h('div',{},h('h1',{class:'titre titre-petit'},(SEANCES[SEANCE_ID]&&SEANCES[SEANCE_ID].titre)||TITRE),h('p',{class:'statut',id:'statut'},'')),
+    tabs,
+    h('div',{class:'salle'},
+      h('button',{class:'qr-mini',onclick:()=>toggleQR(true),'aria-label':'Agrandir le QR code'},h('div',{id:'qr'})),
+      h('div',{},h('span',{class:'petit'},'Code de la salle'),h('span',{class:'code-salle',id:'code-salle'},H.code),h('div',{class:'compteur',id:'compteur'}))));
+  const main=h('main',{class:'scene',id:'scene'});
+  const overlay=h('div',{class:'overlay',id:'overlay',hidden:true,onclick:()=>toggleQR(false)},
+    h('div',{class:'overlay-carte'},
+      h('div',{id:'qr-grand'}),
+      h('p',{class:'overlay-code'},'Code : ',h('strong',{id:'code-grand'},H.code)),
+      h('p',{class:'petit'},'Scannez pour rejoindre. Cliquez n’importe où pour fermer.')));
+  const nodes=[];
+  if(location.protocol==='file:') nodes.push(h('div',{class:'bandeau'},'Ce fichier est ouvert depuis votre ordinateur : les téléphones ne pourront pas rejoindre la salle. Hébergez-le en ligne (https) pour l’utiliser en séance.'));
+  nodes.push(header,main,overlay);
+  app.replaceChildren(...nodes);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleQR(false);});
+  H.panels={accueil:buildAccueil(H),vote:buildVote(H)};
+  main.append(H.panels.accueil,H.panels.vote);
+  setMode(H,H.state.mode==='vote'?'vote':'accueil',true);
+  renderCount(H);renderVoteResults(H);
+}
+function toggleQR(on){const o=document.getElementById('overlay');if(o)o.hidden=!on;}
+function drawQR(H){
+  const url=joinUrl(H);
+  for(const [id,size] of [['qr',64],['qr-grand',380],['qr-accueil',300]]){
+    const box=document.getElementById(id);if(!box)continue;
+    box.replaceChildren();
+    if(typeof QRCode==='undefined'){box.textContent='QR indisponible';continue;}
+    try{new QRCode(box,{text:url,width:size,height:size,colorDark:'#382C17',colorLight:'#E8E1CD',correctLevel:QRCode.CorrectLevel.M});}catch(e){}
+  }
+}
+function renderCode(H){
+  for(const id of ['code-salle','code-grand','code-accueil']){const e=document.getElementById(id);if(e)e.textContent=H.code;}
+  drawQR(H);
+}
+function renderCount(H){
+  let n=0;for(const x of H.conns.values())if(x.me)n++;
+  const el=document.getElementById('compteur');if(el)el.textContent=pluriel(n,'connecté');
+}
+function setMode(H,m,init){
+  H.state.mode=m;
+  for(const p of Object.values(H.panels))p.hidden=p.dataset.panel!==m;
+  document.querySelectorAll('.onglet').forEach(b=>b.setAttribute('aria-current',b.dataset.mode===m?'page':'false'));
+  if(!init){store.set('sfvote_etat'+SKEY,H.state);scheduleBroadcast(H);}
+}
+function buildAccueil(H){
+  return h('div',{class:'panneau panneau-accueil','data-panel':'accueil'},
+    h('div',{class:'accueil-qr',id:'qr-accueil'}),
+    h('div',{},
+      h('h2',{class:'accueil-titre'},'Scannez pour rejoindre la salle'),
+      h('p',{},'Sans téléphone compatible, ouvrez cette adresse :'),
+      h('p',{class:'url'},baseUrl()),
+      h('p',{},'puis saisissez le code ',h('strong',{class:'code-inline',id:'code-accueil'},H.code),'.'),
+      h('p',{class:'petit'},'Aucun compte n’est nécessaire.')));
+}
+
+function buildVote(H){
+  const q=h('textarea',{id:'v-q',rows:'2',maxlength:'300',placeholder:'Votre question'});
+  const opts=h('textarea',{id:'v-opts',rows:'4',placeholder:'Une réponse par ligne'});
+  const presets=[['Vrai / Faux',['Vrai','Faux']],['A, B, C, D',['A','B','C','D']],['1 à 5',['1','2','3','4','5']]];
+  const launch=h('button',{class:'btn',onclick:()=>{
+    const options=opts.value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,8);
+    if(!q.value.trim()){toast('Écrivez une question avant de lancer le vote.');return;}
+    if(options.length<2){toast('Ajoutez au moins deux réponses.');return;}
+    H.state.vote={q:q.value.trim().slice(0,300),options,juste:null,explication:'',open:true,reveal:false,showAnswer:false,ballots:{},id:null};
+    H.montrer=false;changed(H);
+  }},'Lancer le vote');
+  const editor=h('section',{class:'editeur','aria-label':'Question libre'},
+    h('h2',{},'Question libre'),
+    h('label',{for:'v-q'},'Question'),q,
+    h('label',{for:'v-opts'},'Réponses possibles'),opts,
+    h('div',{class:'presets'},h('span',{class:'petit'},'Remplir avec :'),
+      ...presets.map(([l,o])=>h('button',{class:'btn btn-leger',type:'button',onclick:()=>{opts.value=o.join('\n');}},l))),
+    launch);
+  const programme=h('section',{class:'programme','aria-label':'Votes et questions de la séance'},
+    h('h2',{},'Votes et questions'),
+    h('p',{class:'petit',style:'margin:0'},'Un clic lance la question de la slide.'),
+    h('ol',{id:'prog-liste'}));
+  return h('div',{class:'panneau panneau-vote','data-panel':'vote'},
+    h('div',{class:'colonne-vote'},programme,editor),
+    h('section',{class:'resultats',id:'v-res','aria-live':'polite'}));
+}
+function lancer(H,p){
+  const v=H.state.vote;
+  if(v&&v.id!==p.id&&v.open&&Object.keys(v.ballots).length&&!confirm('Un vote est en cours. Le remplacer par « '+p.court+' » ?'))return;
+  H.state.vote={q:p.q,options:(p.o||[]).slice(),juste:p.juste==null?null:p.juste,explication:p.explication||'',open:true,reveal:false,showAnswer:false,ballots:{},texts:{},libre:p.type==='libre',id:p.id};
+  H.state.lances=H.state.lances||[];
+  if(!H.state.lances.includes(p.id))H.state.lances.push(p.id);
+  H.montrer=false;changed(H);
+}
+function renderProgramme(H){
+  const ol=document.getElementById('prog-liste');if(!ol)return;
+  const cur=H.state.vote&&H.state.vote.id;
+  const faits=H.state.lances||[];
+  ol.replaceChildren(...VOTES.map(p=>h('li',{},
+    h('button',{class:'prog-btn'+(cur===p.id?' encours':''),type:'button','aria-current':cur===p.id?'true':'false',onclick:()=>lancer(H,p)},
+      h('span',{class:'prog-num'},p.slide),
+      h('span',{},p.court,h('span',{class:'prog-type'},p.type==='quiz'?'quiz':(p.type==='libre'?'pensée libre':'vote'))),
+      h('span',{class:'prog-fait'},cur===p.id?'en cours':(faits.includes(p.id)?'✓ fait':''))))));
+}
+function counts(v){const a=v.options.map(()=>0);for(const i of Object.values(v.ballots))if(a[i]!=null)a[i]++;return a;}
+function renderVoteResults(H){
+  renderProgramme(H);
+  const box=document.getElementById('v-res');if(!box)return;
+  const v=H.state.vote;
+  if(!v){box.replaceChildren(h('p',{class:'vide'},'Aucune question en cours. Choisissez-en une dans la liste, ou écrivez une question libre.'));return;}
+  if(v.libre){
+    const phrases=Object.values(v.texts||{});
+    box.replaceChildren(
+      h('h2',{class:'question'+(v.q.length>90?' longue':'')},v.q),
+      h('p',{class:'total'},pluriel(phrases.length,'phrase')+(v.open?', ouvert':', clos')),
+      h('ul',{class:'mur'},...phrases.map(s=>h('li',{},s))),
+      h('div',{class:'actions'},
+        v.open?h('button',{class:'btn',onclick:()=>{v.open=false;changed(H);}},'Clore')
+              :h('button',{class:'btn',onclick:()=>{v.open=true;changed(H);}},'Rouvrir'),
+        h('button',{class:'btn btn-leger',onclick:()=>{v.reveal=!v.reveal;changed(H);}},v.reveal?'Cacher le mur sur les téléphones':'Montrer le mur sur les téléphones'),
+        h('button',{class:'btn btn-danger',onclick:()=>{v.texts={};changed(H);}},'Remettre à zéro')));
+    return;
+  }
+  const c=counts(v),total=c.reduce((a,b)=>a+b,0),max=Math.max(1,...c);
+  const show=H.montrer||!v.open;
+  const aReponse=v.juste!=null||!!v.explication;
+  box.replaceChildren(
+    h('h2',{class:'question'+(v.q.length>90?' longue':'')},v.q),
+    h('p',{class:'total'},pluriel(total,'réponse')+(v.open?', vote ouvert':', vote clos')+(show?'':'. Résultats masqués à l’écran.')),
+    h('ol',{class:'barres'},...v.options.map((o,i)=>h('li',{class:'barre'+(v.showAnswer&&v.juste===i?' juste':'')},
+      h('span',{},o),
+      h('span',{class:'barre-piste'},h('span',{class:'barre-remplie',style:'width:'+(show?c[i]/max*100:0)+'%'})),
+      h('span',{class:'barre-n'},show?String(c[i]):'?')))),
+    v.showAnswer&&aReponse?h('div',{class:'reponse'},h('strong',{},v.juste!=null?'Bonne réponse : '+v.options[v.juste]:'Commentaire'),v.explication?h('div',{},v.explication):null):null,
+    h('div',{class:'actions'},
+      v.open?h('button',{class:'btn',onclick:()=>{v.open=false;changed(H);}},'Clore le vote')
+            :h('button',{class:'btn',onclick:()=>{v.open=true;changed(H);}},'Rouvrir le vote'),
+      h('button',{class:'btn btn-leger',onclick:()=>{H.montrer=!H.montrer;renderVoteResults(H);}},H.montrer?'Masquer les résultats':'Afficher les résultats'),
+      aReponse?h('button',{class:'btn btn-leger',onclick:()=>{
+        v.showAnswer=!v.showAnswer;
+        if(v.showAnswer){v.open=false;v.reveal=true;H.montrer=true;}
+        changed(H);
+      }},v.showAnswer?'Cacher la réponse':(v.juste!=null?'Afficher la bonne réponse':'Afficher le commentaire')):null,
+      h('button',{class:'btn btn-leger',onclick:()=>{v.reveal=!v.reveal;changed(H);}},v.reveal?'Cacher les résultats sur les téléphones':'Montrer les résultats sur les téléphones'),
+      h('button',{class:'btn btn-danger',onclick:()=>{v.ballots={};v.texts={};changed(H);}},'Remettre à zéro')));
+}
+
+function onStudentMsg(H,pid,d){
+  if(!d||typeof d!=='object')return;
+  const c=H.conns.get(pid);if(!c)return;
+  if(d.t==='hello'){
+    c.me=String(d.me||pid).slice(0,40);
+    renderCount(H);sendState(H,c);return;
+  }
+  if(!c.me)return;
+  const S=H.state;
+  if(d.t==='texte'&&S.mode==='vote'&&S.vote&&S.vote.libre&&S.vote.open){
+    const s=String(d.s||'').trim().slice(0,200);
+    if(s){S.vote.texts[c.me]=s;changed(H);}
+    return;
+  }
+  if(d.t==='vote'&&S.mode==='vote'&&S.vote&&S.vote.open&&!S.vote.libre){
+    const i=Number(d.i);
+    if(Number.isInteger(i)&&i>=0&&i<S.vote.options.length){S.vote.ballots[c.me]=i;changed(H);}
+  }
+}
+function changed(H){
+  store.set('sfvote_etat'+SKEY,H.state);
+  renderVoteResults(H);
+  scheduleBroadcast(H);
+}
+function viewFor(S,me){
+  const v=S.vote;
+  const vote=v?{q:v.q,libre:!!v.libre,mineText:(v.texts&&v.texts[me])||'',texts:(v.libre&&v.reveal)?Object.values(v.texts||{}):null,options:v.options,open:v.open,reveal:v.reveal,mine:(me in v.ballots)?v.ballots[me]:null,counts:v.reveal?counts(v):null,
+    answer:v.showAnswer?{juste:v.juste,explication:v.explication||''}:null}:null;
+  return {t:'etat',mode:S.mode,vote};
+}
+function sendState(H,c){if(c.conn.open&&c.me){try{c.conn.send(viewFor(H.state,c.me));}catch(e){}}}
+function scheduleBroadcast(H){clearTimeout(H.bt);H.bt=setTimeout(()=>{for(const c of H.conns.values())sendState(H,c);},120);}
+
+/* ---------- Participant ---------- */
+function startStudent(code){
+  const S={code,me:store.get('sfvote_moi')||('e'+Math.random().toString(36).slice(2,10)),
+    peer:null,conn:null,etat:null,retry:0,retryT:null,helloT:null};
+  store.set('sfvote_moi',S.me);
+  app.replaceChildren(h('main',{class:'eleve'},
+    h('header',{class:'eleve-entete'},
+      h('h1',{class:'titre titre-petit'},TITRE),
+      h('p',{class:'statut',id:'e-statut'},'Connexion à la salle '+S.code+'…')),
+    h('div',{id:'e-zone'})));
+  renderStudent(S);
+  connectStudent(S);
+}
+function setE(t){const e=document.getElementById('e-statut');if(e)e.textContent=t;}
+async function connectStudent(S){
+  if(S.peer){try{S.peer.destroy();}catch(e){}}
+  clearInterval(S.helloT);
+  const ice=await getIce();
+  const peer=new Peer({debug:1,config:{iceServers:ice}});S.peer=peer;
+  peer.on('open',()=>{
+    const conn=peer.connect(PREFIX+S.code,{reliable:true});S.conn=conn;
+    conn.on('open',()=>{
+      S.retry=0;S.bloque=0;setE('Connecté à la salle '+S.code);
+      /* Le « hello » est renvoyé toutes les 2 s tant que la salle n'a pas répondu : un premier message perdu ne laisse plus l'écran en attente. */
+      const hello=()=>{if(conn.open&&!S.etat){try{conn.send({t:'hello',me:S.me});}catch(e){}}};
+      hello();S.helloT=setInterval(()=>{if(S.etat){clearInterval(S.helloT);return;}hello();},2000);
+    });
+    conn.on('data',d=>{if(d&&d.t==='etat'){S.etat=d;renderStudent(S);}});
+    conn.on('close',()=>retry(S));
+    conn.on('error',()=>retry(S));
+    setTimeout(()=>{if(S.conn===conn&&!conn.open){S.bloque=(S.bloque||0)+1;renderStudent(S);retry(S,'La salle est trouvée, mais le réseau bloque la connexion. Nouvelle tentative…');}},12000);
+  });
+  peer.on('error',err=>{
+    if(err.type==='peer-unavailable')retry(S,'Salle '+S.code+' introuvable. Vérifiez le code, ou attendez que le présentateur l’ouvre.');
+    else retry(S);
+  });
+}
+function retry(S,msg){
+  if(S.retryT)return;
+  S.retry++;S.etat=null;
+  setE(msg||'Connexion perdue. Nouvelle tentative…');
+  S.retryT=setTimeout(()=>{S.retryT=null;connectStudent(S);},Math.min(10000,1500*S.retry));
+}
+function send(S,msg){
+  if(S.conn&&S.conn.open){try{S.conn.send(msg);return true;}catch(e){}}
+  toast('Pas de connexion à la salle. Réessayez dans un instant.');return false;
+}
+function renderStudent(S){
+  const zone=document.getElementById('e-zone');if(!zone)return;
+  const e=S.etat;
+  if(!e){
+    if(S.bloque>=2){
+      zone.replaceChildren(h('div',{class:'retour'},
+        h('p',{style:'margin:0;font-weight:700'},'Votre réseau bloque la connexion avec l’ordinateur du présentateur.'),
+        h('p',{class:'petit',style:'margin:6px 0 0'},'Essayez de passer du wifi à la 4G (ou l’inverse), puis rechargez la page. La page réessaie toute seule en attendant.')));
+    }else zone.replaceChildren(h('p',{class:'attente'},'En attente de la salle…'));
+    return;
+  }
+  if(e.mode==='vote'&&e.vote){
+    if(S.qprec!==(e.vote&&e.vote.q)){S.qprec=e.vote&&e.vote.q;S.brouillon=null;}
+    const v=e.vote,max=v.counts?Math.max(1,...v.counts):1,a=v.answer;
+    if(v.libre){
+      const ta=h('textarea',{id:'e-texte',rows:'3',maxlength:'200',placeholder:'Votre phrase',disabled:!v.open});
+      ta.value=S.brouillon!=null?S.brouillon:(v.mineText||'');
+      ta.addEventListener('input',()=>{S.brouillon=ta.value;});
+      zone.replaceChildren(h('section',{},
+        h('h2',{class:'question-e'},v.q),
+        h('p',{class:'petit'},v.open?(v.mineText?'Phrase envoyée. Vous pouvez la modifier tant que c’est ouvert.':'Écrivez une phrase, puis envoyez.'):'C’est clos.'),
+        ta,
+        h('p',{},h('button',{class:'btn',disabled:!v.open,onclick:()=>{const s=ta.value.trim();if(!s){toast('Écrivez une phrase.');return;}if(send(S,{t:'texte',s}))toast('Envoyé.');}},'Envoyer')),
+        v.texts?h('ul',{class:'mur mur-e'},...v.texts.map(s=>h('li',{},s))):null));
+      return;
+    }
+    zone.replaceChildren(h('section',{},
+      h('h2',{class:'question-e'},v.q),
+      h('p',{class:'petit'},a?'La réponse est affichée.':(v.open?(v.mine==null?'Touchez votre réponse.':'Réponse enregistrée. Vous pouvez la changer tant que le vote est ouvert.'):'Le vote est clos.')),
+      h('div',{class:'e-options'},...v.options.map((o,i)=>{
+        let cls='e-option'+(v.mine===i?' choisi':'');
+        if(a&&a.juste!=null){if(i===a.juste)cls+=' juste';else if(v.mine===i)cls+=' faux';}
+        return h('button',{class:cls,disabled:!v.open,'aria-pressed':String(v.mine===i),onclick:()=>send(S,{t:'vote',i})},
+          h('span',{},o),
+          v.counts?h('span',{class:'e-option-res'},
+            h('span',{class:'mini-piste'},h('span',{class:'mini-remplie',style:'width:'+(v.counts[i]/max*100)+'%'})),
+            h('span',{},String(v.counts[i]))):null);})),
+      a?h('div',{class:'retour'+((a.juste!=null&&v.mine!==a.juste)?' faux':'')},
+        h('strong',{},a.juste==null?'À retenir':(v.mine===a.juste?'Bonne réponse':'Pas tout à fait')),
+        a.explication?h('div',{},a.explication):null):null));
+    return;
+  }
+  zone.replaceChildren(h('p',{class:'attente'},'Vous êtes dans la salle. L’activité va commencer.'));
+}
+})();
+</script>
+</body>
+</html>
