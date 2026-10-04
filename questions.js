@@ -402,6 +402,145 @@ window.SEANCES={
   }
  ]
 },
+ "7":{
+ "titre": "Séance 7 · L'effet Koulechov",
+ "votes": [
+  {
+   "id": "r1",
+   "slide": "Slide 3",
+   "type": "quiz",
+   "court": "Rappel 1/4 · diégétique",
+   "q": "Un son qui existe dans l'histoire du film, on dit qu'il est…",
+   "o": [
+    "diégétique",
+    "extradiégétique",
+    "off",
+    "asynchrone"
+   ],
+   "juste": 0,
+   "explication": "Diégétique : les personnages l'entendent."
+  },
+  {
+   "id": "r2",
+   "slide": "Slide 4",
+   "type": "quiz",
+   "court": "Rappel 2/4 · quatre matières",
+   "q": "Quelles sont les quatre matières du son ?",
+   "o": [
+    "voix, musique, bruits, silence",
+    "aigu, grave, fort, doux",
+    "mono, stéréo, 5.1, atmos",
+    "dialogue, image, rythme, couleur"
+   ],
+   "juste": 0,
+   "explication": "Voix, musique, bruits, silence."
+  },
+  {
+   "id": "r3",
+   "slide": "Slide 5",
+   "type": "quiz",
+   "court": "Rappel 3/4 · décrire un son",
+   "q": "Pour décrire un son, on commence par…",
+   "o": [
+    "dire s'il est beau",
+    "le classer, puis dire son effet",
+    "nommer le compositeur",
+    "le comparer à un autre film"
+   ],
+   "juste": 1,
+   "explication": "On classe d'abord, on interprète ensuite."
+  },
+  {
+   "id": "r4",
+   "slide": "Slide 6",
+   "type": "quiz",
+   "court": "Rappel 4/4 · le silence",
+   "q": "Le silence au cinéma, c'est…",
+   "o": [
+    "une absence de sens",
+    "un choix qui peut créer de la tension ou de l'intimité",
+    "toujours une erreur",
+    "réservé au cinéma muet"
+   ],
+   "juste": 1,
+   "explication": "Le silence est un choix."
+  },
+  {
+   "id": "v1",
+   "slide": "Slide 7",
+   "type": "vote",
+   "court": "Un visage, quelle émotion ?",
+   "q": "Un visage sans expression particulière. Quelle émotion vous y voyez ?",
+   "o": [
+    "la tristesse",
+    "la faim",
+    "la peur",
+    "aucune"
+   ],
+   "juste": null,
+   "explication": ""
+  },
+  {
+   "id": "l1",
+   "slide": "Slide 22",
+   "type": "libre",
+   "court": "Version 1 : ça raconte quoi ?",
+   "q": "Une phrase sur la version qu'on vient de voir."
+  },
+  {
+   "id": "l2",
+   "slide": "Slide 24",
+   "type": "libre",
+   "court": "Version 2 : et celle-ci ?",
+   "q": "Une phrase sur cette deuxième version."
+  },
+  {
+   "id": "s1",
+   "slide": "Slide 30",
+   "type": "quiz",
+   "court": "Sortie 1/3 · l'effet Koulechov",
+   "q": "L'effet Koulechov, c'est…",
+   "o": [
+    "un truc de caméra",
+    "le sens qui naît du rapprochement de plans",
+    "un raccord de lumière",
+    "un mouvement de caméra"
+   ],
+   "juste": 1,
+   "explication": "Le sens naît du rapprochement des plans."
+  },
+  {
+   "id": "s2",
+   "slide": "Slide 31",
+   "type": "quiz",
+   "court": "Sortie 2/3 · l'ordre des plans",
+   "q": "Qu'est-ce que l'ordre des plans change ?",
+   "o": [
+    "rien",
+    "le sens que le spectateur perçoit",
+    "seulement la durée",
+    "seulement le son"
+   ],
+   "juste": 1,
+   "explication": "L'ordre change le sens que le spectateur perçoit."
+  },
+  {
+   "id": "s3",
+   "slide": "Slide 32",
+   "type": "quiz",
+   "court": "Sortie 3/3 · méthode d'atelier",
+   "q": "Dans l'atelier, la bonne méthode, c'est…",
+   "o": [
+    "monter au feeling sans prendre de notes",
+    "noter ce que raconte chaque version avant de comparer",
+    "ajouter de la musique pour tout régler",
+    "changer les plans entre chaque version"
+   ],
+   "juste": 1,
+   "explication": "On note ce que raconte chaque version avant de comparer."
+  }
+ ]
+},
  '6':{titre:'Séance 6 · Le son',votes:[
   {id:'r1',slide:'Slide 3',type:'quiz',court:'Rappel 1/4 · low key',q:'Low key, c’est…',o:['une image lumineuse sans ombre','une image dominée par les ombres','une image très colorée','une image floue'],juste:1,explication:'Low key : image sombre, beaucoup d’ombres. High key, c’est l’inverse.'},
   {id:'r2',slide:'Slide 4',type:'quiz',court:'Rappel 2/4 · lumière dure',q:'Une lumière dure donne…',o:['des ombres nettes','pas d’ombre','une teinte froide','du flou'],juste:0,explication:'Une lumière dure donne des ombres nettes (soleil de midi, projecteur).'},
